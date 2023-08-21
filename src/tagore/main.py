@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import itertools
 from argparse import ArgumentParser, HelpFormatter
 
 VERSION = "1.1.2"
@@ -108,6 +109,20 @@ def printif(statement, condition):
     if condition:
         print(statement)
 
+
+def draw_legend(items):
+    """
+    items: iterable of tuples in (title, color)
+    """
+    template = """
+<g transform="translate(0,{height})">
+    <circle cx="40" cy="-20" r="40" fill="{color}" />
+    <text x="100" class="st0 st1">{title}</text>
+</g>
+    """
+    items = map(lambda x: template.format(height = x[0] * 100, title = x[1][0], color = x[1][1]), enumerate(items))
+    items = itertools.chain(["""<g id="legend" transform="translate(2300,300)">"""], items, ["</g>"])
+    return str.join("\n", items)
 
 def draw(arguments, svg_header, svg_footer):
     """
@@ -248,6 +263,10 @@ def draw(arguments, svg_header, svg_footer):
             continue
     svg_fh.write(svg_footer)
     svg_fh.write(polygons)
+
+    if arguments.legend:
+        svg_fh.write(draw_legend(map(lambda s: s.split(":"), arguments.legend.split(","))))
+
     svg_fh.write("</svg>")
     svg_fh.close()
     printif(f"\033[92mSuccessfully created SVG\033[0m", arguments.verbose)
@@ -281,6 +300,14 @@ def run():
         default=None,
         metavar="<input.bed>",
         help="Input BED-like file",
+    )
+    parser.add_argument(
+        "-l",
+        "--legend",
+        required=False,
+        default="",
+        metavar="title1:color-hex1,title2:color-hex2",
+        help="Comma separated list of legends",
     )
     parser.add_argument(
         "-p",
